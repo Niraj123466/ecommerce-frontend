@@ -1,10 +1,11 @@
+import { useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import { FileIcon, UploadCloudIcon, XIcon } from "lucide-react";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { useEffect, useRef } from "react";
 import { Button } from "../ui/button";
-import axios from "axios";
 import { Skeleton } from "../ui/skeleton";
+import axios from "axios";
 
 function ProductImageUpload({
   imageFile,
@@ -18,57 +19,56 @@ function ProductImageUpload({
 }) {
   const inputRef = useRef(null);
 
-  console.log(isEditMode, "isEditMode");
-
-  function handleImageFileChange(event) {
-    console.log(event.target.files, "event.target.files");
+  const handleImageFileChange = (event) => {
     const selectedFile = event.target.files?.[0];
-    console.log(selectedFile);
-
     if (selectedFile) setImageFile(selectedFile);
-  }
+  };
 
-  function handleDragOver(event) {
+  const handleDragOver = (event) => {
     event.preventDefault();
-  }
+  };
 
-  function handleDrop(event) {
+  const handleDrop = (event) => {
     event.preventDefault();
     const droppedFile = event.dataTransfer.files?.[0];
     if (droppedFile) setImageFile(droppedFile);
-  }
+  };
 
-  function handleRemoveImage() {
+  const handleRemoveImage = () => {
     setImageFile(null);
     if (inputRef.current) {
       inputRef.current.value = "";
     }
-  }
+  };
 
-  async function uploadImageToCloudinary() {
-    setImageLoadingState(true);
-    const data = new FormData();
-    data.append("my_file", imageFile);
-    const response = await axios.post(
-      "https://ecommerce-backend-omega-murex.vercel.app/api/admin/products/upload-image",
-      data
-    );
-    console.log(response, "response");
+  const uploadImageToCloudinary = async () => {
+    try {
+      setImageLoadingState(true);
+      const data = new FormData();
+      data.append("my_file", imageFile);
 
-    if (response?.data?.success) {
-      setUploadedImageUrl(response.data.result.url);
+      const response = await axios.post(
+        "https://ecommerce-backend-omega-murex.vercel.app/api/admin/products/upload-image",
+        data
+      );
+
+      if (response?.data?.success) {
+        const imageUrl = response.data.result.url;
+        setUploadedImageUrl(imageUrl); // Set the uploaded image URL
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    } finally {
       setImageLoadingState(false);
     }
-  }
+  };
 
   useEffect(() => {
-    if (imageFile !== null) uploadImageToCloudinary();
+    if (imageFile) uploadImageToCloudinary();
   }, [imageFile]);
 
   return (
-    <div
-      className={`w-full  mt-4 ${isCustomStyling ? "" : "max-w-md mx-auto"}`}
-    >
+    <div className={`w-full mt-4 ${isCustomStyling ? "" : "max-w-md mx-auto"}`}>
       <Label className="text-lg font-semibold mb-2 block">Upload Image</Label>
       <div
         onDragOver={handleDragOver}
@@ -101,8 +101,8 @@ function ProductImageUpload({
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <FileIcon className="w-8 text-primary mr-2 h-8" />
+              <p className="text-sm font-medium">{imageFile.name}</p>
             </div>
-            <p className="text-sm font-medium">{imageFile.name}</p>
             <Button
               variant="ghost"
               size="icon"
@@ -115,8 +115,31 @@ function ProductImageUpload({
           </div>
         )}
       </div>
+      {uploadedImageUrl && (
+        <div className="mt-4">
+          <img src={uploadedImageUrl} alt="Uploaded" className="max-w-full" />
+        </div>
+      )}
     </div>
   );
 }
+
+// Prop Types Validation
+ProductImageUpload.propTypes = {
+  imageFile: PropTypes.object,
+  setImageFile: PropTypes.func.isRequired,
+  imageLoadingState: PropTypes.bool.isRequired,
+  uploadedImageUrl: PropTypes.string, // Use uploaded image URL
+  setUploadedImageUrl: PropTypes.func.isRequired,
+  setImageLoadingState: PropTypes.func.isRequired,
+  isEditMode: PropTypes.bool.isRequired,
+  isCustomStyling: PropTypes.bool,
+};
+
+ProductImageUpload.defaultProps = {
+  imageFile: null,
+  uploadedImageUrl: "", // Default to empty string
+  isCustomStyling: false,
+};
 
 export default ProductImageUpload;
